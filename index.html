@@ -2,811 +2,774 @@
 <html lang="es-MX">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 <title>Ciudad Futura: El Arquitecto de la Equidad</title>
 <!--
-  IMPLEMENTACIÓN: Un solo archivo HTML con <style> y <script> internos, sin frameworks ni librerías externas.
-  Juego educativo para 3° de primaria. Lenguaje ES-MX. Desktop y tablet (mouse/touch).
-  Estados: inicio → briefing → construccion (misión) → resultado.
-  Audio: SpeechSynthesis API (voz), WebAudio (música/SFX). Gráficos: CSS/SVG.
-  Código comentado y editable por docentes.
+  VERSIÓN FINAL
+  - Música de fondo: ELIMINADA.
+  - Audio: Solo Voz (TTS) y efectos de clic suaves.
+  - UI: Optimizada para niños 6-10 años.
 -->
 <style>
   :root{
-    --bg: #e6f6ff;
+    --bg: #e0f2fe;
     --panel: #ffffff;
-    --text: #13334c;
-    --accent: #00a5ff;
-    --accent-2: #ffb703;
-    --accent-3: #7dd957;
-    --danger: #ff4d4f;
-    --ok: #14b8a6;
-    --grid: #bfe9ff;
-    --shadow: 0 10px 20px rgba(0,0,0,.15);
-    --radius: 18px;
-    --focus: 0 0 0 3px rgba(0,165,255,.45);
+    --text: #0f172a;
+    --accent: #0ea5e9;       /* Azul brillante */
+    --accent-hover: #0284c7;
+    --accent-2: #f59e0b;     /* Naranja */
+    --accent-3: #22c55e;     /* Verde éxito */
+    --danger: #ef4444;       /* Rojo alerta */
+    --shadow: 0 8px 16px rgba(0,0,0,.1);
+    --radius: 20px;
+    --font-main: system-ui, -apple-system, sans-serif;
   }
-  /* Alto contraste y daltonismo (activables por toggle) */
-  body.high-contrast{
-    --bg:#000; --panel:#111; --text:#fff; --accent:#ffeb3b; --accent-2:#4caf50; --accent-3:#03a9f4; --grid:#333; --danger:#ff5252; --ok:#c6ff00;
+  
+  /* Modos de accesibilidad */
+  body.high-contrast{ --bg:#000; --panel:#111; --text:#fff; --accent:#fbbf24; --accent-2:#f472b6; --accent-3:#4ade80; }
+  
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family: var(--font-main); overflow-x: hidden; }
+  
+  .app{ max-width: 1024px; margin: 0 auto; padding: 10px; min-height: 100vh; display:flex; flex-direction:column; }
+
+  /* Tipografía */
+  h1{ font-size: clamp(1.8rem, 4vw, 2.5rem); line-height: 1.1; margin-bottom:10px; }
+  h2{ font-size: 1.5rem; margin-bottom: 0.5rem; margin-top:0; }
+  p { font-size: 1.1rem; line-height: 1.5; max-width: 65ch; margin-top:0; }
+  
+  /* Tarjetas */
+  .card{ background:var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; transition: all .3s; }
+  .scene{ display:none; animation: fadeIn .5s ease; flex:1; }
+  .scene.active{ display:block; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  /* Botones */
+  .btn{
+    background: var(--accent); color: white; border:none; padding: 12px 24px;
+    font-size: 1.2rem; font-weight: 700; border-radius: 16px;
+    cursor: pointer; box-shadow: 0 6px 0 var(--accent-hover);
+    transition: transform .1s; display:inline-flex; align-items:center; gap:8px;
+    min-height: 56px; touch-action: manipulation;
   }
-  body.cb-mode .pattern-a{ background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.15) 0 8px, transparent 8px 16px); }
-  body.cb-mode .pattern-b{ background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.12) 0 10px, transparent 10px 20px); }
-  body{
-    margin:0; background:var(--bg); color:var(--text); font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Color Emoji", "Apple Color Emoji", sans-serif;
-  }
-  .app{ max-width: 1200px; margin: 0 auto; padding: 16px 16px 120px; position:relative; }
-  h1,h2,h3{ margin:0 0 12px; }
-  .card{ background:var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
-  .btn{ user-select:none; cursor:pointer; min-width: 64px; min-height:64px; display:inline-flex; align-items:center; justify-content:center; gap:.5rem; padding:14px 18px; border-radius:14px; border:none; font-weight:700; font-size:1rem; color:#083344; background:linear-gradient(180deg, var(--accent), #0486cc); box-shadow:0 8px 0 #046fa8, var(--shadow); transition: transform .05s ease, filter .2s ease; }
-  .btn:hover{ filter:brightness(1.05); }
-  .btn:active{ transform: translateY(3px); box-shadow:0 5px 0 #046fa8, var(--shadow); }
-  .btn.secondary{ background:linear-gradient(180deg, var(--accent-2), #f59e0b); box-shadow:0 8px 0 #d97706, var(--shadow); }
-  .btn.ghost{ background: #ffffff; border:2px solid var(--accent); box-shadow: var(--shadow); }
-  .btn.small{ min-height:48px; padding:10px 14px; border-radius:12px; font-size:.95rem; }
+  .btn:active{ transform: translateY(4px); box-shadow: 0 2px 0 var(--accent-hover); }
+  .btn.secondary{ background: var(--accent-2); box-shadow: 0 6px 0 #d97706; color:#333; }
+  .btn.secondary:active{ box-shadow: 0 2px 0 #d97706; }
+  .btn.ghost{ background: transparent; border: 2px solid var(--text); color: var(--text); box-shadow:none; }
+  .btn.circle{ border-radius: 50%; width: 56px; padding:0; justify-content:center; }
+
+  /* UI Grid */
   .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-  .space{ height: 14px; }
-  .scene{ display:none; }
-  .scene.active{ display:block; animation:fade .35s ease; }
-  @keyframes fade{ from{opacity:0; transform: translateY(6px);} to{opacity:1; transform:none;} }
-  /* Barra de toggles de accesibilidad */
-  .toggles{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .toggle{ display:flex; align-items:center; gap:8px; background:var(--panel); border-radius: 100px; padding: 6px 10px; box-shadow: var(--shadow); min-height:48px; }
-  .switch{ position:relative; width:56px; height:30px; background:#cbd5e1; border-radius:999px; cursor:pointer; transition:background .2s; }
-  .switch::after{ content:""; position:absolute; width:26px; height:26px; border-radius:50%; background:#fff; top:2px; left:2px; transition: left .2s; box-shadow:0 2px 6px rgba(0,0,0,.25); }
-  .switch.on{ background: var(--accent-3); }
-  .switch.on::after{ left:28px; }
-  .toggle label{ font-size:.95rem; font-weight:700; }
-  /* Inicio */
-  .title{ font-size: clamp(28px,5vw,56px); line-height:1.05; }
-  .subtitle{ opacity:.85; }
-  .hero{ display:grid; grid-template-columns: 1.4fr 1fr; gap:16px; align-items:center; }
-  @media (max-width: 900px){ .hero{ grid-template-columns:1fr; } }
-  .city-illustration{ min-height: 260px; display:grid; grid-template-columns: repeat(6, 1fr); gap:10px; }
-  .bldg{ height:92px; border-radius: 14px; display:flex; align-items:center; justify-content:center; font-size:34px; position:relative; box-shadow:var(--shadow); }
-  .bldg::after{ content:""; position:absolute; inset:0; border-radius:14px; background: repeating-linear-gradient(-45deg, rgba(255,255,255,.15) 0 10px, rgba(255,255,255,0) 10px 20px); opacity:.25; }
-  .bldg.parque{ background: #8be28b; }
-  .bldg.bus{ background: #ffd166; }
-  .bldg.hospital{ background: #ff9aa2; }
-  .bldg.biblioteca{ background: #b5c0ff; }
-  .bldg.escuela{ background: #a0e1ff; }
-  /* Briefing */
-  .brief-grid{ display:grid; grid-template-columns: 1fr 1.2fr; gap:16px; align-items:center; }
-  @media (max-width: 1000px){ .brief-grid{ grid-template-columns:1fr; } }
-  .counselor{ display:flex; align-items:center; gap:12px; }
-  .avatar{ width:92px; height:92px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #fff 0 40%, #ffd1dc 41%); box-shadow: var(--shadow); position:relative; }
-  .avatar::before{ content:""; position:absolute; left:18px; top:46px; width:56px; height:36px; background:#ffb3c1; border-radius: 0 0 56px 56px; }
-  .bubble{ background:var(--panel); border-left: 8px solid var(--accent); padding:14px 16px; border-radius: 14px; box-shadow: var(--shadow); font-size:1.15rem; font-weight:800; }
-  .mini-demo{ background:var(--panel); border-radius:14px; padding:12px; box-shadow:var(--shadow); }
-  .mini-city{ display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; }
-  .cell{ height:40px; background: #e2e8f0; border-radius:8px; position:relative; overflow:hidden; }
-  .stairs, .ramp{ position:absolute; inset:8px; border-radius:6px; }
-  .stairs{ background: repeating-linear-gradient( to right, #334155 0 6px, #94a3b8 6px 12px ); opacity:.9; }
-  .ramp{ background: linear-gradient( 20deg, #22c55e, #86efac ); opacity:.9; clip-path: polygon(0 100%, 100% 0, 100% 100%); }
-  .face{ position:absolute; right:6px; bottom:4px; font-size:18px; }
-  /* Misión (Construcción) */
-  .hud{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-  .meter{ min-width: 200px; background:var(--panel); padding:10px 12px; border-radius:14px; box-shadow: var(--shadow); }
-  .meter .bar{ height:16px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
-  .meter .fill{ height:100%; width:50%; background: linear-gradient(90deg, var(--accent-3), var(--accent)); border-radius: 999px; transition: width .4s ease; }
-  .counter{ font-weight:800; }
-  .board{ display:grid; grid-template-columns: 320px 1fr; gap:12px; margin-top:12px; align-items:start; }
-  @media (max-width: 1000px){ .board{ grid-template-columns:1fr; } }
-  .palette{ display:grid; grid-template-columns:1fr; gap:10px; }
-  .card.bcard{ display:flex; align-items:center; gap:12px; min-height:72px; cursor:pointer; border:2px solid transparent; }
-  .bicon{ font-size:28px; width:42px; text-align:center; }
-  .bname{ font-weight:900; font-size:1rem; }
-  .bstatus{ margin-left:auto; font-weight:800; padding:6px 10px; border-radius:10px; background:#e2e8f0; }
-  .bcard.locked{ opacity:.55; pointer-events:none; }
-  .bcard.selected{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,165,255,.25); }
-  .grid{ background: var(--panel); border-radius: 16px; padding: 10px; box-shadow: var(--shadow); }
-  .grid-inner{ --cols: 8; --rows: 6; display:grid; grid-template-columns: repeat(var(--cols), 1fr); grid-template-rows: repeat(var(--rows), 72px); gap:6px; }
-  .tile{ background: var(--grid); border-radius:12px; position:relative; overflow:hidden; outline:none; }
-  .tile:hover{ filter:brightness(1.03); }
-  .tile:focus{ box-shadow: var(--focus); }
-  .cursor{ position:absolute; inset:0; border: 3px dashed var(--accent); border-radius:12px; pointer-events:none; animation:blink .65s step-end infinite; }
-  @keyframes blink{ 50%{ opacity:0.35; } }
-  .placed{ display:flex; align-items:center; justify-content:center; font-size:30px; }
-  .placed::after{ content: attr(data-name); position:absolute; bottom:2px; left:4px; right:4px; font-size:12px; font-weight:900; background:rgba(255,255,255,.85); color:#0f172a; padding:2px 6px; border-radius:6px; text-align:center; }
-  .badge-bad{ position:absolute; top:6px; right:6px; background: var(--danger); color:#fff; font-weight:900; padding:2px 6px; border-radius:999px; font-size:12px; }
-  /* Puzzle Modal */
-  .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:16px; backdrop-filter: blur(6px); }
-  .modal.active{ display:flex; }
-  .modal .window{ width:min(1000px, 96vw); max-height: 92vh; overflow:auto; background:var(--panel); border-radius:18px; box-shadow: var(--shadow); padding:14px; }
-  .puzzle{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-  @media (max-width: 900px){ .puzzle{ grid-template-columns:1fr; } }
-  .improvements{ display:grid; grid-template-columns: 1fr; gap:10px; }
-  .impr{ display:flex; align-items:center; gap:10px; padding:12px; border-radius:12px; border:2px solid #cbd5e1; cursor:pointer; }
-  .impr.active{ border-color: var(--ok); background:rgba(20,184,166,.08); }
-  .citizens{ display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
-  .cit{ display:flex; align-items:center; gap:10px; padding:10px; border-radius:12px; background:#f1f5f9; }
-  .cit .mood{ font-size:20px; width:28px; text-align:center; }
-  .goal{ background:#f8fafc; border-radius:12px; padding:10px; border:2px dashed #cbd5e1; }
-  .kbd{ background:#0ea5e9; color:#fff; font-weight:900; padding:2px 8px; border-radius:8px; font-size:.85rem; box-shadow: var(--shadow); }
-  /* Resultado */
-  .result{ text-align:center; }
-  .trophy{ font-size: 64px; }
-  .confetti{ position:fixed; inset:0; pointer-events:none; }
+  .space{ height: 20px; }
+  .grid-layout{ display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+  @media(max-width:768px){ .grid-layout{ grid-template-columns:1fr; } }
+
+  /* INICIO */
+  .hero-img{ font-size: 80px; text-align:center; animation: float 3s infinite ease-in-out; }
+  @keyframes float{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-15px);} }
+  
+  /* Botones Accesibilidad */
+  .access-bar{ display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-top:20px; justify-content:center; }
+  .toggle-btn{
+    background: rgba(0,0,0,0.05); padding: 8px 16px; border-radius: 30px; font-weight:bold; cursor:pointer; font-size:0.9rem; border:2px solid transparent; white-space:nowrap;
+  }
+  .toggle-btn.active{ background: var(--accent-3); color: #003300; border-color: var(--text); }
+
+  /* BRIEFING */
+  .avatar-box{ display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .avatar{ font-size: 80px; background: #fecdd3; width:120px; height:120px; border-radius:50%; display:flex; align-items:center; justify-content:center; border: 4px solid white; box-shadow: var(--shadow); margin-bottom:10px; }
+  .speech-bubble{
+    background: var(--panel); border: 3px solid var(--accent); border-radius: 20px; padding: 20px; font-size: 1.3rem; position:relative; min-height: 120px; display:flex; align-items:center; justify-content:center; text-align:center; font-weight: 500;
+  }
+  
+  /* MISIÓN UI */
+  .top-bar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .meters{ display:flex; gap:15px; flex:1; }
+  .meter-box{ background: white; padding: 8px 12px; border-radius: 12px; box-shadow: 0 4px rgba(0,0,0,0.1); flex:1; max-width:200px; }
+  .meter-label{ font-size: 0.85rem; font-weight:bold; color:#64748b; margin-bottom:4px; }
+  .progress-bg{ height: 12px; background: #e2e8f0; border-radius: 10px; overflow:hidden; }
+  .progress-fill{ height: 100%; background: var(--accent-3); width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+  
+  .game-area{ display:grid; grid-template-columns: 300px 1fr; gap:20px; align-items:start; }
+  @media(max-width:900px){ .game-area{ grid-template-columns:1fr; } .game-area > :first-child{ order:2; } }
+
+  /* Paleta */
+  .building-list{ display:grid; grid-template-columns: 1fr; gap:10px; }
+  .b-card{
+    display:flex; align-items:center; gap:15px; padding: 12px; border-radius: 16px; background:white; cursor:pointer; border: 3px solid transparent; transition: all .2s;
+  }
+  .b-card:hover{ transform: scale(1.02); }
+  .b-card.selected{ border-color: var(--accent); background: #e0f2fe; }
+  .b-card.done{ opacity: 0.6; filter: grayscale(0.8); pointer-events:none; }
+  .b-icon{ font-size: 2.5rem; line-height:1; }
+  .b-info{ display:flex; flex-direction:column; }
+  .b-name{ font-weight:800; font-size:1.1rem; }
+  .b-status{ font-size:0.8rem; font-weight:bold; color:var(--accent); }
+
+  /* Mapa */
+  .map-container{ background: #94a3b8; padding:15px; border-radius: 20px; box-shadow: inset 0 4px 10px rgba(0,0,0,0.2); overflow-x:auto; }
+  .map-grid{
+    display:grid; grid-template-columns: repeat(8, 1fr); gap:6px; min-width: 600px;
+  }
+  .tile{
+    aspect-ratio: 1; background: #e2e8f0; border-radius: 12px; border: none; cursor:pointer; position:relative; transition: all .2s; outline:none; box-shadow: 0 4px 0 #94a3b8;
+  }
+  .tile:active{ transform:translateY(4px); box-shadow:none; }
+  .tile:focus-visible{ box-shadow: 0 0 0 4px var(--accent-2); }
+  
+  .tile.empty:hover{ background: #f1f5f9; }
+  .tile.placed{ background: #bfdbfe; border: 3px dashed var(--accent); }
+  .tile.complete{ background: #bbf7d0; border: 3px solid var(--accent-3); box-shadow: 0 0 15px var(--accent-3); }
+  .tile-content{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size: 2.5rem; pointer-events:none; }
+  .tile-badge{
+    position:absolute; top:-5px; right:-5px; width:24px; height:24px; background:var(--danger); color:white; font-size:14px; font-weight:bold; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 0%{transform:scale(1);} 50%{transform:scale(1.2);} 100%{transform:scale(1);} }
+
+  /* PUZZLE MODAL */
+  .modal-overlay{
+    position:fixed; inset:0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index:100; display:none; align-items:center; justify-content:center; padding:10px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-window{
+    background: var(--panel); width: 100%; max-width: 900px; max-height: 90vh; overflow-y:auto; border-radius: 24px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: popIn .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn{ from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
+
+  .puzzle-header{ display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #eee; padding-bottom:15px; margin-bottom:15px; }
+  .citizen-panel{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom: 20px; }
+  
+  .cit-card{
+    background: #f8fafc; padding: 12px; border-radius: 12px; display:flex; align-items:center; gap:12px; border-left: 6px solid #ccc; transition: all .3s;
+  }
+  .cit-card.sad{ border-left-color: var(--danger); background: #fef2f2; }
+  .cit-card.happy{ border-left-color: var(--accent-3); background: #f0fdf4; transform: scale(1.02); }
+  .cit-emoji{ font-size: 2.2rem; }
+  
+  .improvements-list{ display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px; }
+  .imp-btn{
+    background: white; border: 2px solid #cbd5e1; padding: 15px; border-radius: 16px; text-align:left; cursor:pointer; display:flex; align-items:center; gap:10px; font-weight:bold; transition:all .2s;
+  }
+  .imp-btn:hover{ border-color: var(--accent); background: #f0f9ff; }
+  .imp-btn.active{ background: var(--accent); color:white; border-color:var(--accent); box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3); }
+  .imp-check{ width:24px; height:24px; border:2px solid currentColor; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+
   /* Subtítulos */
-  .captions{ position:fixed; left:0; right:0; bottom:0; background:rgba(0,0,0,.75); color:#fff; padding:10px 14px; font-weight:900; letter-spacing:.2px; font-size: clamp(14px, 2vw, 20px); text-align:center; }
-  .hintbar{ position:sticky; bottom:0; margin-top:12px; background:#ffffffcc; padding:10px; border-radius:12px; font-weight:800; display:flex; gap:10px; flex-wrap:wrap; align-items:center; box-shadow: var(--shadow); }
-  .hintbar .h{ padding:4px 8px; border-radius:8px; background:#f1f5f9; }
-  /* Accesibilidad: tamaños táctiles */
-  button, .impr, .bcard, .tile{ touch-action:manipulation; min-height:64px; }
-  /* Ocultos utilitarios */
+  .captions-box{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background: rgba(0,0,0,0.85); color: #fff; padding: 12px 24px; border-radius: 30px;
+    font-size: 1.2rem; text-align:center; z-index: 200; pointer-events:none; max-width: 90%;
+    opacity:0; transition: opacity .3s;
+  }
+  .captions-box.visible{ opacity:1; }
+
+  #confetti{ position:fixed; inset:0; pointer-events:none; z-index:150; }
   .hidden{ display:none !important; }
 </style>
 </head>
 <body>
-  <div class="app" id="app" aria-live="polite">
-    <!-- ====== ESCENA: INICIO ====== -->
-    <section id="inicio" class="scene active">
-      <div class="hero">
-        <div class="card">
-          <h1 class="title">Ciudad Futura: <br>El Arquitecto de la Equidad</h1>
-          <p class="subtitle">Construye una ciudad cartoon donde <b>todas</b> las personas pueden acceder. ¡Usa la IA con equidad!</p>
-          <div class="space"></div>
-          <div class="row">
-            <button class="btn" id="btnJugar" aria-label="Jugar">🎮 Jugar</button>
-            <button class="btn secondary" id="btnComo" aria-label="Cómo se juega">❓ Cómo se juega</button>
-          </div>
-          <div class="space"></div>
-          <div class="toggles" role="group" aria-label="Preferencias de accesibilidad y audio">
-            <div class="toggle" data-key="music">
-              <div class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
-              <label>🎵 Música</label>
-            </div>
-            <div class="toggle" data-key="voice">
-              <div class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
-              <label>🗣️ Voz</label>
-            </div>
-            <div class="toggle" data-key="subs">
-              <div class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
-              <label>💬 Subtítulos</label>
-            </div>
-            <div class="toggle" data-key="contrast">
-              <div class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
-              <label>⚫ Alto Contraste</label>
-            </div>
-            <div class="toggle" data-key="cb">
-              <div class="switch on" role="switch" aria-checked="true" tabindex="0"></div>
-              <label>🎨 Modo Daltonismo</label>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Tu ciudad cartoon</h3>
-          <div class="city-illustration">
-            <div class="bldg parque pattern-a">🏞</div>
-            <div class="bldg bus pattern-b">🚌</div>
-            <div class="bldg hospital">🏥</div>
-            <div class="bldg biblioteca pattern-a">📚</div>
-            <div class="bldg escuela pattern-b">🏫</div>
-            <div class="bldg" style="background:#c4b5fd">🌳</div>
-            <div class="bldg" style="background:#fecdd3">🏠</div>
-            <div class="bldg" style="background:#fde68a">🚦</div>
-            <div class="bldg" style="background:#bbf7d0">🏡</div>
-            <div class="bldg" style="background:#c7d2fe">🏙️</div>
-            <div class="bldg" style="background:#93c5fd">🚏</div>
-            <div class="bldg" style="background:#a7f3d0">🌼</div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- ====== ESCENA: BRIEFING ====== -->
-    <section id="briefing" class="scene">
-      <div class="brief-grid">
-        <div class="card">
-          <div class="counselor">
-            <div class="avatar" aria-hidden="true"></div>
-            <div>
-              <h2>Consejera de la Comunidad</h2>
-              <div class="bubble" id="briefLine">Hola 👋</div>
-            </div>
-          </div>
-          <div class="space"></div>
-          <div class="row">
-            <button class="btn" id="btnEntendido">¡Entendido!</button>
-          </div>
-          <div class="space"></div>
-          <div class="hintbar">
-            <span class="h">Tips: poco texto, más íconos y voz.</span>
-            <span class="h">Activa/Desactiva voz y subtítulos cuando gustes.</span>
-          </div>
-        </div>
-        <div class="card mini-demo">
-          <h3>Mini-demo de Accesibilidad</h3>
-          <div class="mini-city" id="demoCity" aria-label="Demostración: escaleras vs rampas">
-            <!-- Se animan desde JS: primero escaleras (caras tristes), luego rampas y caras felices -->
-          </div>
-        </div>
-      </div>
-    </section>
+<div class="app">
 
-    <!-- ====== ESCENA: MISIÓN / CONSTRUCCIÓN ====== -->
-    <section id="mision" class="scene">
-      <div class="hud">
-        <div class="meter" aria-label="Medidor de Felicidad">
-          <div class="row" style="justify-content:space-between"><b>😊 Felicidad</b> <span class="counter" id="felTxt">50%</span></div>
-          <div class="bar"><div class="fill" id="felBar" style="width:50%"></div></div>
-        </div>
-        <div class="meter" aria-label="Índice de Acceso">
-          <div class="row" style="justify-content:space-between"><b>🧭 Índice de Acceso</b> <span class="counter" id="accTxt">50</span></div>
-          <div class="bar"><div class="fill" id="accBar" style="width:50%"></div></div>
-        </div>
-        <div class="meter" aria-label="Ciudadanos satisfechos">
-          <div class="row" style="justify-content:space-between"><b>👨‍👩‍👧 Ciudadanos Satisfechos</b> <span class="counter" id="satTxt">0</span></div>
-        </div>
+  <!-- ================= PANTALLA 1: INICIO ================= -->
+  <section id="scene-intro" class="scene active">
+    <div style="height:40px"></div>
+    <div class="card" style="text-align:center; padding: 40px 20px;">
+      <div class="hero-img">🏙️✨</div>
+      <h1>Ciudad Futura:<br>El Arquitecto de la Equidad</h1>
+      <p style="margin:0 auto;">¡Hola! Tu misión es construir una ciudad donde <b>todas y todos</b> puedan ser felices. ¿Estás listo?</p>
+      
+      <div class="space"></div>
+      
+      <button class="btn" onclick="game.startBriefing()">🎮 ¡Empezar a Jugar!</button>
+      <div class="space"></div>
+      <button class="btn secondary" onclick="UI.toggleModal('modal-howto')">❓ ¿Cómo se juega?</button>
+      
+      <div class="space"></div>
+      <hr style="border:0; border-top:1px solid #ddd; margin: 20px 0;">
+      
+      <p style="font-size:0.9rem"><b>Opciones de Accesibilidad:</b></p>
+      <div class="access-bar">
+        <button class="toggle-btn active" id="btn-voice" onclick="AudioSys.toggleVoice()">🗣️ Voz Sí</button>
+        <button class="toggle-btn" id="btn-contrast" onclick="UI.toggleContrast()">🌗 Alto Contraste</button>
       </div>
-      <div class="board">
-        <div>
-          <div class="card">
-            <h3>Edificios y Servicios</h3>
-            <div class="palette" id="palette"></div>
-          </div>
-          <div class="space"></div>
-          <div class="card">
-            <b>Objetivo</b>
-            <p>Coloca <b>5 edificios clave</b> y termina con <b>Felicidad ≥ 90</b>.</p>
-            <div class="row"><span class="kbd">1</span> Seleccionar edificio <span class="kbd">Enter</span> Colocar <span class="kbd">R</span> Reintentar</div>
-          </div>
-        </div>
-        <div class="grid card">
-          <div class="grid-inner" id="grid" aria-label="Terreno de la ciudad en cuadrícula"></div>
-        </div>
-      </div>
-      <div class="hintbar">
-        <span class="h"><span class="kbd">2</span> Abre mejoras</span>
-        <span class="h"><span class="kbd">3</span> Panel de Ciudadanos</span>
-        <span class="h">Áreas táctiles ≥ 64px</span>
-      </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- ====== ESCENA: RESULTADO ====== -->
-    <section id="resultado" class="scene">
-      <div class="card result" id="resultCard">
-        <!-- Se completa desde JS -->
+  <!-- ================= PANTALLA 2: BRIEFING (HISTORIA) ================= -->
+  <section id="scene-briefing" class="scene">
+    <div class="grid-layout" style="align-items:center; height:100%">
+      <div class="avatar-box">
+        <div class="avatar">👩‍💼</div>
+        <div style="font-weight:bold; font-size:1.2rem">Consejera Ana</div>
       </div>
-    </section>
-
-    <!-- ====== MODAL: Cómo se juega ====== -->
-    <div class="modal" id="modalComo" aria-modal="true" role="dialog" aria-label="Cómo se juega">
-      <div class="window">
-        <h2>Cómo se juega</h2>
-        <div class="space"></div>
-        <div class="row" id="slides" style="flex-wrap:nowrap; overflow:auto; scroll-snap-type:x mandatory;">
-          <div class="card" style="min-width:280px; scroll-snap-align:center;">
-            <div style="font-size:64px">🏗️</div>
-            <b>Coloca edificios</b>
-            <p>Arrastra o toca la cuadrícula.</p>
-          </div>
-          <div class="card" style="min-width:280px; scroll-snap-align:center;">
-            <div style="font-size:64px">🗣️💬</div>
-            <b>Escucha a la comunidad</b>
-            <p>La IA a veces olvida a alguien.</p>
-          </div>
-          <div class="card" style="min-width:280px; scroll-snap-align:center;">
-            <div style="font-size:64px">♿🧭</div>
-            <b>Agrega mejoras inclusivas</b>
-            <p>¡Más acceso, más felicidad!</p>
-          </div>
+      <div>
+        <div class="speech-bubble" id="briefing-text">
+          <!-- Texto dinámico -->
         </div>
         <div class="space"></div>
-        <div class="row" style="justify-content:flex-end">
-          <button class="btn ghost" id="closeComo">Cerrar</button>
+        <div class="row" style="justify-content: flex-end;">
+          <button class="btn secondary" id="briefing-next" onclick="game.nextBriefingStep()">Siguiente ➡️</button>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- ====== MODAL: Puzzle de Diseño Inclusivo ====== -->
-    <div class="modal" id="modalPuzzle" aria-modal="true" role="dialog">
-      <div class="window">
-        <div class="row" style="justify-content:space-between; align-items:center;">
-          <h2 id="puzzleTitle">Puzzle</h2>
-          <button class="btn ghost small" id="closePuzzle">Cerrar ✖</button>
+  <!-- ================= PANTALLA 3: JUEGO (MISIÓN) ================= -->
+  <section id="scene-game" class="scene">
+    <!-- Barra Superior HUD -->
+    <div class="top-bar">
+      <div class="meters">
+        <div class="meter-box">
+          <div class="meter-label">😊 Felicidad Ciudadana</div>
+          <div class="progress-bg"><div class="progress-fill" id="bar-happy" style="width:50%"></div></div>
+        </div>
+        <div class="meter-box">
+          <div class="meter-label">🏗️ Edificios Listos</div>
+          <div style="font-weight:bold; font-size:1.1rem" id="count-builds">0 / 5</div>
+        </div>
+      </div>
+      <!-- Botón Menú -->
+      <button class="btn circle ghost" onclick="UI.toggleMenu()" aria-label="Menú">⚙️</button>
+    </div>
+
+    <!-- Menú desplegable -->
+    <div id="game-menu" class="card hidden" style="position:absolute; right:10px; top:70px; z-index:50; width:200px;">
+      <p><b>Ajustes</b></p>
+      <button class="btn ghost small" style="width:100%" onclick="game.restart()">🔄 Reiniciar</button>
+    </div>
+
+    <div class="game-area">
+      <!-- Izquierda: Paleta -->
+      <div class="card">
+        <h2>🛠️ ¿Qué construimos?</h2>
+        <p style="font-size:0.9rem">Elige un edificio y colócalo en el mapa.</p>
+        <div class="building-list" id="building-palette">
+          <!-- Se llena con JS -->
+        </div>
+      </div>
+
+      <!-- Derecha: Mapa -->
+      <div class="card" style="background: #f0f9ff;">
+        <h2>🗺️ Mapa de Ciudad Futura</h2>
+        <div class="map-container">
+          <div class="map-grid" id="map-grid">
+            <!-- Tiles generados por JS -->
+          </div>
         </div>
         <div class="space"></div>
-        <div class="puzzle">
-          <div>
-            <div class="goal" id="goalBox"></div>
-            <div class="space"></div>
-            <div class="improvements" id="improvements"></div>
-          </div>
-          <div>
-            <div class="card">
-              <h3>Panel de Ciudadanos</h3>
-              <div class="citizens" id="citizens"></div>
-            </div>
-            <div class="space"></div>
-            <div class="row" style="justify-content:flex-end; gap:10px;">
-              <button class="btn secondary" id="btnFeedback">Probar</button>
-              <button class="btn" id="btnListo">Listo ✅</button>
-            </div>
-          </div>
+        <div style="background:#e0f2fe; padding:10px; border-radius:10px; font-size:0.9rem; display:flex; gap:10px; align-items:center;">
+          <span>ℹ️ <b>Ayuda:</b> Haz clic en un edificio colocado para mejorarlo con IA.</span>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- SUBTÍTULOS -->
-    <div class="captions" id="captions">Subtítulos activados</div>
+  <!-- ================= PANTALLA 4: RESULTADO ================= -->
+  <section id="scene-result" class="scene">
+    <div class="card" style="text-align:center; padding:40px;">
+      <div id="result-icon" style="font-size:100px;">🏆</div>
+      <h1 id="result-title">¡Fantástico!</h1>
+      <p id="result-msg" style="font-size:1.3rem;">Has creado una ciudad donde todos caben.</p>
+      <div class="space"></div>
+      <button class="btn" onclick="game.restart()">🔄 Jugar otra vez</button>
+    </div>
+  </section>
 
-    <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+</div>
+
+<!-- MODAL: CÓMO JUGAR -->
+<div class="modal-overlay" id="modal-howto">
+  <div class="modal-window" style="max-width:500px;">
+    <h2>❓ Cómo se juega</h2>
+    <ol style="font-size:1.1rem; line-height:1.6; padding-left:20px;">
+      <li><b>Elige un edificio</b> del menú de la izquierda.</li>
+      <li><b>Colócalo</b> en un cuadro gris del mapa.</li>
+      <li><b>¡IMPORTANTE!</b> El edificio empieza "básico". Haz clic en él otra vez para abrir el <b>Puzzle de Diseño</b>.</li>
+      <li>Agrega rampas, braille y ayudas para subir la felicidad 😊.</li>
+      <li>Completa 5 edificios para ganar.</li>
+    </ol>
+    <div style="text-align:right"><button class="btn" onclick="UI.toggleModal('modal-howto')">¡Entendido!</button></div>
   </div>
+</div>
+
+<!-- MODAL: PUZZLE DE DISEÑO -->
+<div class="modal-overlay" id="modal-puzzle">
+  <div class="modal-window">
+    <div class="puzzle-header">
+      <h2 id="pz-title" style="margin:0">🏥 Hospital</h2>
+      <button class="btn ghost circle" onclick="UI.closePuzzle()">✖</button>
+    </div>
+
+    <div class="grid-layout">
+      <!-- Columna 1: Ciudadanos -->
+      <div>
+        <h3>👥 ¿Quiénes lo usan?</h3>
+        <p style="font-size:0.9rem">Observa quiénes están tristes y dales lo que necesitan.</p>
+        <div class="citizen-panel" id="pz-citizens"></div>
+      </div>
+
+      <!-- Columna 2: Mejoras -->
+      <div>
+        <h3>✨ Mejoras de Inclusión (IA)</h3>
+        <p style="font-size:0.9rem">Selecciona las herramientas para eliminar barreras:</p>
+        <div class="improvements-list" id="pz-improvements"></div>
+        
+        <div class="space"></div>
+        <hr>
+        <div class="row" style="justify-content:space-between; margin-top:15px;">
+          <div style="font-size:0.9rem; color:#666">Objetivo: Haz felices a todos</div>
+          <button class="btn" id="pz-btn-finish" onclick="game.finishPuzzle()">✅ ¡Diseño Listo!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Subtítulos flotantes -->
+<div class="captions-box" id="captions"></div>
+<canvas id="confetti"></canvas>
 
 <script>
-// ============================
-// DATOS DEL JUEGO (EDITABLES)
-// ============================
-const ciudadanos = [
-  {id:"nino_atleta", nombre:"Niño atleta", icon:"🧒🏃", tags:["ninez","movilidad_ok"]},
-  {id:"nino_pequeno", nombre:"Niño pequeño", icon:"🧒", tags:["ninez","pequenos"]},
-  {id:"silla_ruedas", nombre:"Niña en silla de ruedas", icon:"👧♿", tags:["movilidad_reducida"]},
-  {id:"abuela", nombre:"Abuela", icon:"👵", tags:["mayores","audicion_baja"]},
-  {id:"familia_migrante", nombre:"Familia migrante", icon:"👨‍👩‍👧‍👦", tags:["idioma_diferente"]},
-];
+/* =========================================
+   SISTEMA DE AUDIO: SOLO VOZ Y SFX SIMPLES
+   ========================================= */
+const AudioSys = {
+  ctx: null,
+  voiceEnabled: true,
 
-const edificios = [
-  { id:"parque", icon:"🏞", nombre:"Parque de Juegos", baseFel:0,
-    baseProblemas:["pequenos","movilidad_reducida"],
-    mejoras:[
-      {id:"rampa", label:"Rampa de Acceso ♿", cubre:["movilidad_reducida"], fel:+8},
-      {id:"columpios_bebes", label:"Columpios para Bebés 👶", cubre:["pequenos"], fel:+6},
-      {id:"sensoriales", label:"Juegos Sensoriales 🎨", cubre:["ninez"], fel:+6}
-    ], objetivoFel:20
+  init: function() {
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AudioContext();
   },
-  { id:"bus", icon:"🚌", nombre:"Estación de Autobuses", baseFel:0,
-    baseProblemas:["audicion_baja","idioma_diferente"],
-    mejoras:[
-      {id:"texto_grande", label:"Pantallas Texto Grande 🔤", cubre:["audicion_baja"], fel:+10},
-      {id:"audio_multi", label:"Audio Multilingüe 🌐🔊", cubre:["idioma_diferente"], fel:+10}
-    ], objetivoFel:20
+
+  toggleVoice: function(){
+    this.voiceEnabled = !this.voiceEnabled;
+    const btn = document.getElementById('btn-voice');
+    btn.className = this.voiceEnabled ? 'toggle-btn active' : 'toggle-btn';
+    btn.textContent = this.voiceEnabled ? "🗣️ Voz Sí" : "🗣️ Voz No";
+    if(!this.voiceEnabled) window.speechSynthesis.cancel();
   },
-  { id:"hospital", icon:"🏥", nombre:"Hospital", baseFel:0,
-    baseProblemas:["movilidad_reducida","mayores"],
-    mejoras:[
-      {id:"rampas_todas", label:"Rampas en todas las entradas ♿", cubre:["movilidad_reducida","mayores"], fel:+10},
-      {id:"puertas_auto", label:"Puertas Automáticas 🚪⚡", cubre:["movilidad_reducida"], fel:+6},
-      {id:"pictos", label:"Pictogramas Claros 🧭", cubre:["mayores","idioma_diferente"], fel:+6},
-      {id:"botones_bajos", label:"Botones de Ascensor Bajos 🔘⬇️", cubre:["movilidad_reducida"], fel:+8}
-    ], objetivoFel:30
+
+  sfx: function(type) {
+    // Genera un sonido muy corto y suave (click/pop) solo para feedback táctil
+    if(!this.ctx) this.init();
+    if(this.ctx.state === 'suspended') this.ctx.resume();
+
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.connect(g); g.connect(this.ctx.destination);
+
+    const t = this.ctx.currentTime;
+    
+    if(type === 'pop') {
+      // Sonido de clic suave
+      o.frequency.setValueAtTime(300, t);
+      o.frequency.exponentialRampToValueAtTime(600, t + 0.1);
+      g.gain.setValueAtTime(0.2, t);
+      g.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+      o.start(t); o.stop(t + 0.1);
+    } else if(type === 'success') {
+      // Sonido de éxito corto (campanita)
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(500, t);
+      o.frequency.setValueAtTime(800, t + 0.1);
+      g.gain.setValueAtTime(0.2, t);
+      g.gain.linearRampToValueAtTime(0, t + 0.4);
+      o.start(t); o.stop(t + 0.4);
+    }
   },
-  // Opcionales preparados:
-  { id:"biblioteca", icon:"📚", nombre:"Biblioteca", opcional:true,
-    mejoras:[
-      {id:"rincon_infantil", label:"Rincón Infantil 📚", cubre:["ninez"], fel:+6},
-      {id:"audiolibros", label:"Audiolibros 🎧", cubre:["mayores"], fel:+6},
-      {id:"bilingue", label:"Señalética Bilingüe 🇲🇽🌐", cubre:["idioma_diferente"], fel:+6}
-    ], objetivoFel:15
-  },
-  { id:"escuela", icon:"🏫", nombre:"Escuela", opcional:true,
-    mejoras:[
-      {id:"rampas_pasamanos", label:"Rampas y Pasamanos ♿", cubre:["movilidad_reducida"], fel:+8},
-      {id:"fuente_baja", label:"Fuente de Agua Baja 🚰", cubre:["ninez","movilidad_reducida"], fel:+6},
-      {id:"aula_sensorial", label:"Aula Sensorial 🎧🧩", cubre:["ninez"], fel:+6}
-    ], objetivoFel:15
+
+  speak: function(text) {
+    // Visual: Subtítulos
+    const cap = document.getElementById('captions');
+    cap.textContent = text;
+    cap.classList.add('visible');
+    clearTimeout(this.capTimer);
+    this.capTimer = setTimeout(()=>cap.classList.remove('visible'), Math.max(3000, text.length * 80));
+
+    // Audio: TTS
+    if(!this.voiceEnabled) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'es-MX'; u.rate = 1.1;
+    window.speechSynthesis.speak(u);
   }
-];
-
-const estado = {
-  felicidad: 50,  // 0–100
-  acceso: 50,
-  satisfechos: 0,
-  completados: 0,
-  objetivoEdificios: 5,
-  placed: {}, // key "r,c" -> {id, mejoras:Set, fel, completo}
-  globalCovered:new Set(),
-  scene: 'inicio',
-  cursor: {r:0, c:0}
 };
 
-// ============================
-// UTILIDADES UI / ACCESIBILIDAD
-// ============================
-const $ = s => document.querySelector(s);
-const el = (tag, props={})=>Object.assign(document.createElement(tag), props);
-
-const togglesState = {
-  music:true, voice:true, subs:true, contrast:true, cb:true
+/* =========================================
+   DATOS DEL JUEGO
+   ========================================= */
+const DB = {
+  citizens: [
+    {id:'gma', name:'Abuela Luisa', icon:'👵', needs:['motor','visual'], desc:'Usa bastón y ve poco.'},
+    {id:'kid', name:'Leo', icon:'🧒', needs:['kids'], desc:'Es pequeño.'},
+    {id:'wheel', name:'Ana', icon:'👧♿', needs:['motor'], desc:'Usa silla de ruedas.'},
+    {id:'migrant', name:'Familia Khan', icon:'👨‍👩‍👧', needs:['lang'], desc:'Hablan otro idioma.'}
+  ],
+  buildings: [
+    {
+      id: 'park', name: 'Parque', icon: '🌳',
+      barriers: ['motor', 'kids'],
+      upgrades: [
+        {id:'ramps', text:'Rampas de acceso', covers:['motor']},
+        {id:'swings', text:'Columpios adaptados', covers:['motor','kids']},
+        {id:'floor', text:'Suelo de goma suave', covers:['kids']}
+      ]
+    },
+    {
+      id: 'bus', name: 'Estación Bus', icon: '🚌',
+      barriers: ['visual', 'lang'],
+      upgrades: [
+        {id:'audio', text:'Megafonía (Audio)', covers:['visual']},
+        {id:'signs', text:'Señales Multi-idioma', covers:['lang']},
+        {id:'braille', text:'Mapas con Braille', covers:['visual']}
+      ]
+    },
+    {
+      id: 'hospital', name: 'Hospital', icon: '🏥',
+      barriers: ['motor', 'visual', 'lang'],
+      upgrades: [
+        {id:'elev', text:'Ascensor amplio', covers:['motor']},
+        {id:'guide', text:'Guías en el suelo', covers:['visual']},
+        {id:'pics', text:'Pictogramas (Dibujos)', covers:['lang','kids']}
+      ]
+    },
+    {
+      id: 'school', name: 'Escuela', icon: '🏫',
+      barriers: ['motor', 'kids'],
+      upgrades: [
+        {id:'ramp', text:'Rampa en entrada', covers:['motor']},
+        {id:'desk', text:'Pupitres ajustables', covers:['motor','kids']}
+      ]
+    },
+    {
+      id: 'lib', name: 'Biblioteca', icon: '📚',
+      barriers: ['visual', 'lang'],
+      upgrades: [
+        {id:'audiobooks', text:'Audiolibros', covers:['visual']},
+        {id:'trans', text:'Libros en varios idiomas', covers:['lang']}
+      ]
+    }
+  ]
 };
 
-function applyTogglesFromUI(){
-  document.querySelectorAll('.toggle').forEach(tg=>{
-    const key = tg.dataset.key; const sw = tg.querySelector('.switch');
-    const on = sw.classList.contains('on'); togglesState[key]=on;
-  });
-  document.body.classList.toggle('high-contrast', !!togglesState.contrast);
-  document.body.classList.toggle('cb-mode', !!togglesState.cb);
-  if(!togglesState.subs){ captions.textContent=''; captions.classList.add('hidden'); } else { captions.classList.remove('hidden'); }
-  Audio.setMusicEnabled(!!togles('music'));
-}
-const togles = key => togglesState[key];
+/* =========================================
+   LÓGICA DE JUEGO
+   ========================================= */
+const game = {
+  state: {
+    felicity: 30,
+    completed: 0,
+    grid: Array(16).fill(null),
+    selectedBuilding: null,
+    buildingsPlaced: []
+  },
 
-// Subtítulos + Voz (SpeechSynthesis)
-const captions = $('#captions');
-function setCaption(t){ if(togles('subs')){ captions.textContent = t; captions.classList.remove('hidden'); } }
-function clearCaption(){ if(togles('subs')) captions.textContent=''; }
+  init: function() {
+    this.renderPalette();
+    this.renderGrid();
+    UI.updateHUD();
+  },
 
-function speak(text, {rate=1, pitch=1, force=false}={}){
-  setCaption(text);
-  if(!togles('voice') && !force){ return; }
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'es-MX';
-  u.rate = rate; u.pitch = pitch;
-  u.onend = ()=> { /* opcional limpiar */ };
-  try{ window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){ /* sin voz */ }
-}
+  restart: function() {
+    this.state = { felicity: 30, completed: 0, grid: Array(16).fill(null), selectedBuilding: null, buildingsPlaced: [] };
+    document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active'));
+    document.getElementById('scene-intro').classList.add('active');
+    document.getElementById('game-menu').classList.add('hidden');
+    UI.updateHUD();
+    this.renderGrid();
+    this.renderPalette();
+  },
 
-// WebAudio: música y SFX sin archivos externos
-const Audio = (function(){
-  let ctx, master, musicGain, sfxGain, musicOsc, musicInterval, enabled=true;
-  function ensure(){ if(!ctx){ ctx = new (window.AudioContext||window.webkitAudioContext)();
-    master = ctx.createGain(); master.gain.value = .8; master.connect(ctx.destination);
-    musicGain = ctx.createGain(); musicGain.gain.value = .15; musicGain.connect(master);
-    sfxGain = ctx.createGain(); sfxGain.gain.value = .6; sfxGain.connect(master);
-  }}
-  function setMusicEnabled(on){ enabled = on; if(!on){ stopMusic(); } else if(stateIs('construccion')){ startMusic(); } }
-  function startMusic(){ ensure(); stopMusic();
-    // Melodía amable mínima: dos osciladores en terceras, tempo depende de felicidad
-    musicOsc = ctx.createOscillator(); musicOsc.type='triangle'; musicOsc.frequency.value = 220; musicOsc.connect(musicGain); musicOsc.start();
-    const osc2 = ctx.createOscillator(); osc2.type='sine'; osc2.frequency.value = 330; osc2.connect(musicGain); osc2.start();
-    // Modulación de volumen según felicidad
-    musicInterval = setInterval(()=>{
-      const f = estado.felicidad/100; musicGain.gain.linearRampToValueAtTime(.08 + f*.22, ctx.currentTime+0.2);
-      // Pequeño arpegio
-      const base = 200 + Math.floor(f*140);
-      musicOsc.frequency.linearRampToValueAtTime(base, ctx.currentTime+.2);
-      osc2.frequency.linearRampToValueAtTime(base*1.5, ctx.currentTime+.2);
-    }, 800);
-  }
-  function stopMusic(){ if(musicInterval){ clearInterval(musicInterval); musicInterval=null; } try{ musicOsc&&musicOsc.stop(); }catch(e){} musicOsc=null; }
-  function sfx(type){ ensure(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.connect(g); g.connect(sfxGain);
-    if(type==='place'){ o.type='square'; o.frequency.value=260; g.gain.setValueAtTime(.5, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+.15); }
-    if(type==='ok'){ o.type='sine'; o.frequency.value=740; g.gain.setValueAtTime(.7, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+.2); }
-    if(type==='bell'){ o.type='triangle'; o.frequency.value=880; g.gain.setValueAtTime(.6, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+.6); }
-    o.start(); o.stop(ctx.currentTime+.7);
-  }
-  return { startMusic, stopMusic, sfx, setMusicEnabled };
-})();
+  // --- BRIEFING ---
+  briefStep: 0,
+  briefTexts: [
+    "¡Hola, Arquitecto! 👷‍♀️ Soy tu consejera Ana.",
+    "Mira este terreno. Queremos construir una ciudad genial.",
+    "Pero ojo: una IA básica a veces olvida que todos somos diferentes.",
+    "Tu trabajo es corregir a la IA y poner mejoras para todos. ¿Listo?"
+  ],
 
-// ============================
-// NAVEGACIÓN DE ESCENAS
-// ============================
-function go(scene){
-  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active'));
-  const id = scene==='inicio'?'inicio': scene==='briefing'?'briefing': scene==='construccion'?'mision':'resultado';
-  $('#'+id).classList.add('active');
-  estado.scene = scene;
-  if(scene==='briefing') runBriefing();
-  if(scene==='construccion'){ renderHUD(); renderPalette(); renderMap(); if(togles('music')) Audio.startMusic(); }
-  if(scene!=='construccion'){ Audio.stopMusic(); }
-}
-const stateIs = s => estado.scene===s;
+  startBriefing: function() {
+    UI.showScene('scene-briefing');
+    this.briefStep = 0;
+    this.showBriefText();
+  },
 
-// ============================
-// INICIO: toggles + modal Cómo se juega
-// ============================
-$('#btnJugar').addEventListener('click', ()=>{ go('briefing'); });
-$('#btnComo').addEventListener('click', ()=> $('#modalComo').classList.add('active'));
-$('#closeComo').addEventListener('click', ()=> $('#modalComo').classList.remove('active'));
+  nextBriefingStep: function() {
+    this.briefStep++;
+    if(this.briefStep >= this.briefTexts.length){
+      UI.showScene('scene-game');
+      this.init();
+      AudioSys.speak("Selecciona un edificio de la izquierda para empezar.");
+    } else {
+      this.showBriefText();
+    }
+  },
 
-// Activar toggles (por defecto encendidos)
-Array.from(document.querySelectorAll('.toggle .switch')).forEach(sw=>{
-  sw.addEventListener('click', ()=>{ sw.classList.toggle('on'); sw.setAttribute('aria-checked', sw.classList.contains('on')?'true':'false'); applyTogglesFromUI(); });
-  sw.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); sw.click(); } });
-});
-applyTogglesFromUI();
+  showBriefText: function() {
+    const txt = this.briefTexts[this.briefStep];
+    document.getElementById('briefing-text').textContent = txt;
+    AudioSys.speak(txt);
+  },
 
-// ============================
-// BRIEFING: líneas + mini demo
-// ============================
-const briefingLines = [
-  'Acceso para todos.',
-  'La IA copia patrones: si ve solo escaleras, construye escaleras.',
-  'La equidad da a cada uno lo que necesita.'
-];
-let briefIdx=0, briefTimer=null;
-function runBriefing(){
-  // Construir mini-city demo
-  const demo = $('#demoCity'); demo.innerHTML='';
-  for(let i=0;i<12;i++){
-    const c = el('div',{className:'cell'}); demo.appendChild(c);
-  }
-  // Paso 1: sólo escaleras + caras tristes
-  const cells = Array.from(demo.children);
-  cells.forEach((c,i)=>{
-    const s = el('div',{className:'stairs'}); c.appendChild(s);
-    const face = el('div',{className:'face', textContent:i%3===0?'😟': (i%3===1?'😕':'😟')}); c.appendChild(face);
-  });
-  // Secuencia de voz y subtítulos
-  briefIdx=0; nextBriefLine();
-  // A los 2s, convertir algunas escaleras en rampas y caras felices
-  setTimeout(()=>{
-    cells.forEach((c,i)=>{
-      if(i%2===0){ c.innerHTML=''; const r=el('div',{className:'ramp'}); c.appendChild(r); c.appendChild(el('div',{className:'face', textContent:'🙂'})); }
+  // --- MAPA Y CONSTRUCCIÓN ---
+  renderPalette: function() {
+    const p = document.getElementById('building-palette');
+    p.innerHTML = '';
+    DB.buildings.forEach(b => {
+      const placed = this.state.buildingsPlaced.find(pb => pb.typeId === b.id);
+      const div = document.createElement('div');
+      div.className = `b-card ${placed ? (placed.isComplete ? 'done' : '') : ''}`;
+      if(this.state.selectedBuilding === b.id) div.classList.add('selected');
+      
+      div.innerHTML = `
+        <div class="b-icon">${b.icon}</div>
+        <div class="b-info">
+          <div class="b-name">${b.name}</div>
+          <div class="b-status">${placed ? (placed.isComplete ? '✅ Listo' : '⚠️ Falta mejorar') : '🆕 Nuevo'}</div>
+        </div>
+      `;
+      div.onclick = () => {
+        if(placed && placed.isComplete) return;
+        this.selectBuilding(b.id); 
+      };
+      p.appendChild(div);
     });
-  }, 2200);
-}
-function nextBriefLine(){
-  const line = briefingLines[briefIdx]; $('#briefLine').textContent = line; speak(line, {rate:1});
-  briefIdx = (briefIdx+1)%briefingLines.length;
-  clearTimeout(briefTimer); briefTimer = setTimeout(nextBriefLine, 2800);
-}
-$('#btnEntendido').addEventListener('click', ()=>{ clearTimeout(briefTimer); go('construccion'); setCaption(''); });
+  },
 
-// ============================
-// MISIÓN: HUD, PALETA, MAPA, PUZZLES
-// ============================
-function renderHUD(){
-  $('#felTxt').textContent = Math.round(estado.felicidad)+'%';
-  $('#felBar').style.width = Math.max(0,Math.min(100,estado.felicidad))+'%';
-  $('#accTxt').textContent = Math.round(estado.acceso);
-  $('#accBar').style.width = Math.max(0,Math.min(100,estado.acceso))+'%';
-  $('#satTxt').textContent = estado.satisfechos;
-}
+  selectBuilding: function(id) {
+    this.state.selectedBuilding = id;
+    AudioSys.sfx('pop');
+    AudioSys.speak("Ahora toca un cuadro gris en el mapa.");
+    this.renderPalette();
+  },
 
-function renderPalette(){
-  const pal = $('#palette'); pal.innerHTML='';
-  edificios.forEach(ed=>{
-    const placed = Object.values(estado.placed).some(p=>p.id===ed.id);
-    const card = el('div',{className:'card bcard pattern-a'});
-    if(placed) card.classList.add('locked');
-    card.innerHTML = `<div class="bicon">${ed.icon||'🏗️'}</div>
-      <div class="bname">${ed.nombre}${ed.opcional?' (Opcional)':''}</div>
-      <div class="bstatus">${placed?'Hecho':'Nuevo'}</div>`;
-    card.addEventListener('click', ()=>{ if(!placed){ selectBuilding(ed.id); } });
-    card.dataset.edid=ed.id;
-    pal.appendChild(card);
-  });
-}
-
-let selectedBuilding = null;
-function selectBuilding(id){ selectedBuilding=id; document.querySelectorAll('.bcard').forEach(c=>c.classList.toggle('selected', c.dataset.edid===id)); speak('Selecciona un lugar para construir.'); }
-
-const GRID_ROWS=6, GRID_COLS=8; // 6x8 cuadricula
-function renderMap(){
-  const grid = $('#grid'); grid.innerHTML='';
-  const gi = el('div',{className:'grid-inner'}); grid.appendChild(gi);
-  gi.style.setProperty('--cols', GRID_COLS); gi.style.setProperty('--rows', GRID_ROWS);
-  for(let r=0;r<GRID_ROWS;r++){
-    for(let c=0;c<GRID_COLS;c++){
-      const key=`${r},${c}`; const t = el('button',{className:'tile', tabIndex:0});
-      // cursor virtual para teclado
-      if(r===estado.cursor.r && c===estado.cursor.c){ const cur = el('div',{className:'cursor'}); t.appendChild(cur); }
-      // mostrar edificio colocado
-      if(estado.placed[key]){
-        const info = estado.placed[key];
-        const ed = edificios.find(e=>e.id===info.id);
-        const cell = el('div',{className:'placed', textContent: ed.icon||'🏗️'});
-        cell.setAttribute('data-name', ed.nombre);
-        t.appendChild(cell);
-        if(!info.completo){ const badge=el('div',{className:'badge-bad', textContent:'¡Falta!'}); t.appendChild(badge); }
-        t.addEventListener('click', ()=> openPuzzle(info.id, key));
+  renderGrid: function() {
+    const g = document.getElementById('map-grid');
+    g.innerHTML = '';
+    this.state.grid.forEach((cell, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'tile empty';
+      
+      if(cell) {
+        btn.classList.remove('empty');
+        btn.classList.add('placed');
+        if(cell.isComplete) btn.classList.add('complete');
+        
+        let content = `<div class="tile-content">${cell.data.icon}</div>`;
+        if(!cell.isComplete) content += `<div class="tile-badge">!</div>`;
+        btn.innerHTML = content;
+        
+        btn.onclick = () => this.openPuzzle(cell);
       } else {
-        t.addEventListener('click', ()=>{ if(selectedBuilding){ placeBuilding(selectedBuilding, key); } });
+        btn.onclick = () => this.placeBuilding(idx);
       }
-      t.addEventListener('keydown', (e)=>{
-        if(e.key==='Enter'){
-          if(estado.placed[key]){ openPuzzle(estado.placed[key].id, key); }
-          else if(selectedBuilding){ placeBuilding(selectedBuilding, key); }
-        }
+      g.appendChild(btn);
+    });
+  },
+
+  placeBuilding: function(idx) {
+    if(!this.state.selectedBuilding) {
+      AudioSys.speak("Primero elige un edificio del menú izquierdo.");
+      return;
+    }
+    if(this.state.buildingsPlaced.find(b => b.typeId === this.state.selectedBuilding)) {
+      AudioSys.speak("Ya construiste este edificio. ¡Mejóralo!");
+      return;
+    }
+
+    const bData = DB.buildings.find(b => b.id === this.state.selectedBuilding);
+    const newBuild = {
+      id: Date.now(),
+      typeId: bData.id,
+      data: bData,
+      upgradesApplied: [],
+      isComplete: false
+    };
+
+    this.state.grid[idx] = newBuild;
+    this.state.buildingsPlaced.push(newBuild);
+    this.state.selectedBuilding = null;
+    
+    AudioSys.sfx('pop');
+    AudioSys.speak("¡Bien! Ahora tócalo para hacerlo inclusivo.");
+    
+    this.renderGrid();
+    this.renderPalette();
+    
+    setTimeout(() => this.openPuzzle(newBuild), 600);
+  },
+
+  // --- PUZZLE ---
+  currentPuzzle: null,
+
+  openPuzzle: function(buildObj) {
+    this.currentPuzzle = buildObj;
+    const modal = document.getElementById('modal-puzzle');
+    document.getElementById('pz-title').innerText = `${buildObj.data.icon} ${buildObj.data.name}`;
+    this.renderPuzzleState();
+    UI.toggleModal('modal-puzzle', true);
+    if(!buildObj.isComplete) {
+      AudioSys.speak("Mira a los ciudadanos tristes. ¿Qué necesitan?");
+    }
+  },
+
+  renderPuzzleState: function() {
+    const build = this.currentPuzzle;
+    const bData = build.data;
+    
+    // 1. Ciudadanos
+    const cPanel = document.getElementById('pz-citizens');
+    cPanel.innerHTML = '';
+    let allHappy = true;
+    
+    DB.citizens.forEach(cit => {
+      const hasBarrier = bData.barriers.some(br => cit.needs.includes(br));
+      let isHappy = true;
+      if(hasBarrier) {
+        const coveredNeeds = new Set();
+        build.upgradesApplied.forEach(upId => {
+          const up = bData.upgrades.find(u=>u.id===upId);
+          if(up) up.covers.forEach(c => coveredNeeds.add(c));
+        });
+        if(cit.needs.some(n => bData.barriers.includes(n) && !coveredNeeds.has(n))) isHappy = false;
+      }
+      if(!isHappy) allHappy = false;
+
+      const card = document.createElement('div');
+      card.className = `cit-card ${isHappy ? 'happy' : 'sad'}`;
+      card.innerHTML = `
+        <div class="cit-emoji">${isHappy ? '😃' : '😟'}</div>
+        <div class="cit-text">
+          <b>${cit.name} ${cit.icon}</b>
+          <small>${isHappy ? '¡Puede entrar!' : 'Tiene problemas'}</small>
+        </div>
+      `;
+      cPanel.appendChild(card);
+    });
+
+    // 2. Mejoras
+    const iPanel = document.getElementById('pz-improvements');
+    iPanel.innerHTML = '';
+    bData.upgrades.forEach(up => {
+      const isActive = build.upgradesApplied.includes(up.id);
+      const btn = document.createElement('button');
+      btn.className = `imp-btn ${isActive ? 'active' : ''}`;
+      btn.innerHTML = `<div class="imp-check">${isActive ? '✓' : ''}</div><span>${up.text}</span>`;
+      btn.onclick = () => this.toggleUpgrade(up.id);
+      iPanel.appendChild(btn);
+    });
+
+    // Botón terminar
+    const btnFin = document.getElementById('pz-btn-finish');
+    if(allHappy) {
+      btnFin.style.display = 'inline-flex';
+      btnFin.className = 'btn';
+      btnFin.innerHTML = "✅ ¡Excelente! Terminar";
+    } else {
+      btnFin.style.display = 'none';
+    }
+  },
+
+  toggleUpgrade: function(upId) {
+    const build = this.currentPuzzle;
+    const idx = build.upgradesApplied.indexOf(upId);
+    if(idx > -1) {
+      build.upgradesApplied.splice(idx, 1);
+      AudioSys.sfx('pop');
+    } else {
+      build.upgradesApplied.push(upId);
+      AudioSys.sfx('success');
+    }
+    this.renderPuzzleState();
+  },
+
+  finishPuzzle: function() {
+    const build = this.currentPuzzle;
+    if(!build.isComplete) {
+      this.state.completed++;
+      this.state.felicity += 15;
+      build.isComplete = true;
+      AudioSys.speak("¡Fantástico! Has eliminado las barreras.");
+      this.confettiEffect();
+    }
+    UI.toggleModal('modal-puzzle', false);
+    UI.updateHUD();
+    this.renderGrid();
+    this.renderPalette();
+    this.checkVictory();
+  },
+
+  checkVictory: function() {
+    if(this.state.completed >= 5) {
+      setTimeout(() => {
+        UI.showScene('scene-result');
+        AudioSys.speak("¡Lo lograste! Eres un arquitecto de la equidad.");
+        this.confettiEffect();
+      }, 1000);
+    }
+  },
+  
+  confettiEffect: function() {
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let particles = [];
+    for(let i=0; i<100; i++) {
+      particles.push({
+        x: canvas.width/2, y: canvas.height/2,
+        vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
+        color: `hsl(${Math.random()*360}, 100%, 50%)`
       });
-      gi.appendChild(t);
     }
-  }
-}
-
-function placeBuilding(id, key){
-  if(estado.placed[key]) return;
-  const ed = edificios.find(e=>e.id===id); if(!ed) return;
-  estado.placed[key] = { id:ed.id, mejoras:new Set(), fel:0, completo:false, covered:new Set() };
-  Audio.sfx('place');
-  speak('Edificio colocado. Abre el puzzle para mejorarlo.');
-  renderMap();
-  // Abrir puzzle de inmediato
-  openPuzzle(ed.id, key);
-}
-
-let currentKey=null; // celda actual del puzzle abierto
-function openPuzzle(edId, key){
-  currentKey=key; const data = edificios.find(e=>e.id===edId); const placed = estado.placed[key];
-  $('#puzzleTitle').textContent = `${data.icon||'🏗️'} ${data.nombre} — Diseño Inclusivo`;
-  // Objetivo
-  const goal = $('#goalBox');
-  goal.innerHTML = `<b>Objetivo de Felicidad del edificio:</b> ${data.objetivoFel} puntos
-  <div class="space"></div>
-  <div class="row"><div class="meter" style="min-width:unset; width:100%"><div class="row" style="justify-content:space-between"><span><b>Puntos actuales</b></span><span class="counter" id="pFel">${placed.fel}</span></div><div class="bar"><div class="fill" id="pFelBar" style="width:${Math.min(100, placed.fel/data.objetivoFel*100)}%"></div></div></div></div>`;
-
-  // Mejoras
-  const cont = $('#improvements'); cont.innerHTML='';
-  data.mejoras.forEach(m=>{
-    const active = placed.mejoras.has(m.id);
-    const it = el('div',{className:'impr'+(active?' active':''), role:'checkbox', 'aria-checked': active?'true':'false', tabIndex:0});
-    it.innerHTML = `<div style="font-size:24px">✅</div><div style="font-weight:800">${m.label}</div><div class="bstatus" style="margin-left:auto">+${m.fel}</div>`;
-    it.addEventListener('click', ()=> toggleMejora(data, m));
-    it.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); it.click(); } });
-    it.dataset.mid=m.id;
-    cont.appendChild(it);
-  });
-
-  // Panel de ciudadanos
-  mostrarPanelCiudadanos(data);
-
-  $('#modalPuzzle').classList.add('active');
-}
-$('#closePuzzle').addEventListener('click', ()=> $('#modalPuzzle').classList.remove('active'));
-
-function toggleMejora(edificio, mejora){
-  const placed = estado.placed[currentKey]; if(!placed) return;
-  if(placed.mejoras.has(mejora.id)) placed.mejoras.delete(mejora.id); else placed.mejoras.add(mejora.id);
-  calcularImpacto(edificio);
-  // UI: marcar activa
-  document.querySelectorAll('#improvements .impr').forEach(it=>{
-    const on = placed.mejoras.has(it.dataset.mid); it.classList.toggle('active', on); it.setAttribute('aria-checked', on?'true':'false');
-  });
-}
-
-function calcularImpacto(edificio){
-  const placed = estado.placed[currentKey];
-  let fel = 0; const groups = new Set();
-  edificio.mejoras.forEach(m=>{ if(placed.mejoras.has(m.id)){ fel += m.fel; m.cubre.forEach(g=>groups.add(g)); }});
-  // Bonificación por cobertura múltiple
-  if(groups.size>=3) fel += 5;
-  placed.fel = fel;
-  placed.covered = groups;
-  // Actualizar UI del puzzle
-  $('#pFel').textContent = fel; $('#pFelBar').style.width = Math.min(100, fel/edificio.objetivoFel*100)+'%';
-  // Feedback rápido
-  Audio.sfx('ok'); speak('¡Gran mejora!', {}); setCaption('Más acceso');
-  mostrarPanelCiudadanos(edificio);
-}
-
-function mostrarPanelCiudadanos(edificio){
-  const cont = $('#citizens'); cont.innerHTML='';
-  const placed = estado.placed[currentKey];
-  ciudadanos.forEach(ci=>{
-    // Estado del ciudadano con respecto al edificio
-    const afecta = (edificio.baseProblemas||[]).some(p=>ci.tags.includes(p));
-    let mood='🙂';
-    if(afecta){ // Está afectado si el diseño IA básico lo excluye
-      mood = '😟';
-      // Si alguna mejora cubre su necesidad -> feliz
-      const cubierto = (placed.covered||new Set());
-      if(ci.tags.some(t=>cubierto.has(t))) mood='🙂'; else mood='😕';
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.2;
+        ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 8, 8);
+        if(p.y > canvas.height) particles.splice(i, 1);
+      });
+      if(particles.length > 0) requestAnimationFrame(draw);
     }
-    const item = el('div',{className:'cit'});
-    item.innerHTML = `<div class="mood">${mood}</div><div><b>${ci.icon} ${ci.nombre}</b><br><small>${ci.tags.join(', ')}</small></div>`;
-    cont.appendChild(item);
-  });
-}
+    draw();
+  }
+};
 
-// Botón Probar: feedback sin cerrar
-$('#btnFeedback').addEventListener('click', ()=>{
-  const placed = estado.placed[currentKey]; if(!placed) return;
-  if(placed.fel>0){ speak('¡Gran mejora! Más acceso.'); Audio.sfx('ok'); }
-  else { speak('Alguien quedó fuera. ¿Qué más falta?'); setCaption('¿Qué más falta?'); }
+const UI = {
+  showScene: function(id) {
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  },
+  toggleModal: function(id, forceOpen) {
+    const el = document.getElementById(id);
+    if(forceOpen !== undefined) {
+      if(forceOpen) el.classList.add('open'); else el.classList.remove('open');
+    } else {
+      el.classList.toggle('open');
+    }
+  },
+  closePuzzle: function() { this.toggleModal('modal-puzzle', false); },
+  toggleContrast: function() {
+    document.body.classList.toggle('high-contrast');
+    const btn = document.getElementById('btn-contrast');
+    btn.classList.toggle('active');
+  },
+  toggleMenu: function() { document.getElementById('game-menu').classList.toggle('hidden'); },
+  updateHUD: function() {
+    const bar = document.getElementById('bar-happy');
+    const val = Math.min(100, game.state.felicity);
+    bar.style.width = val + '%';
+    if(val > 60) bar.style.background = 'var(--accent-3)'; else bar.style.background = 'var(--accent-2)';
+    document.getElementById('count-builds').innerText = `${game.state.completed} / 5`;
+  }
+};
+
+window.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') { UI.closePuzzle(); UI.toggleModal('modal-howto', false); }
 });
-
-// Botón Listo: aplica cambios al global
-$('#btnListo').addEventListener('click', ()=>{
-  const placed = estado.placed[currentKey]; const edificio = edificios.find(e=>e.id===placed.id);
-  // Evaluar completitud
-  const eraCompleto = placed.completo; const ahoraCompleto = placed.fel >= (edificio.objetivoFel||0);
-  placed.completo = ahoraCompleto;
-  // Suma de felicidad global por mejoras aplicadas en este puzzle (delta respecto a antes)
-  // Regla: cada mejora suma su fel; si edificio pasa a "completo" por primera vez: +5 global
-  const deltaFel = (placed.fel - (placed.prevFel||0)) + ( !eraCompleto && ahoraCompleto ? 5 : 0 );
-  placed.prevFel = placed.fel;
-  actualizarFelicidad(deltaFel);
-  // Índice de Acceso crece por cantidad de grupos cubiertos
-  placed.covered.forEach(g=> estado.globalCovered.add(g));
-  estado.acceso = Math.min(100, 30 + estado.globalCovered.size*10);
-  // Ciudadanos satisfechos (conteo aproximado):
-  const satisfechosAhora = ciudadanos.filter(ci=>{
-    const afecta = (edificio.baseProblemas||[]).some(p=>ci.tags.includes(p));
-    if(!afecta) return false; // solo contamos quienes estaban en riesgo
-    const cubierto = placed.covered; return ci.tags.some(t=>cubierto.has(t));
-  }).length;
-  estado.satisfechos += satisfechosAhora;
-
-  if(!eraCompleto && ahoraCompleto){ estado.completados += 1; Audio.sfx('bell'); speak('¡Diseño inclusivo listo!'); }
-
-  $('#modalPuzzle').classList.remove('active');
-  renderHUD(); renderMap();
-  checkVictory();
-});
-
-function actualizarFelicidad(delta){
-  estado.felicidad = Math.max(0, Math.min(100, estado.felicidad + delta));
-  renderHUD();
-}
-
-function checkVictory(){
-  const enoughBuildings = estado.completados >= estado.objetivoEdificios;
-  if(enoughBuildings && estado.felicidad >= 90){
-    go('resultado');
-    showResult(true);
-  } else if(enoughBuildings && estado.felicidad < 90){
-    go('resultado');
-    showResult(false);
-  }
-}
-
-function showResult(win){
-  const box = $('#resultCard'); box.innerHTML='';
-  if(win){
-    const h = el('div', {innerHTML:`<h2>🎉 ¡Victoria! Ciudad Inclusiva</h2><p>¡Con diseño que mira a todos, la ciudad brilla!</p>`});
-    const key = el('div',{className:'trophy', textContent:'🗝️✨ Llave de Oro de la Ciudad Inclusiva'});
-    const sum = el('p',{innerHTML:`¡Ciudad construida! Felicidad: <b>${Math.round(estado.felicidad)}%</b>. Puzzles resueltos: <b>${estado.completados}</b>. Grupos ayudados: <b>${estado.globalCovered.size}</b>.`});
-    const back = el('div',{className:'row'});
-    const btnPlay = el('button',{className:'btn', textContent:'Seguir construyendo'}); btnPlay.addEventListener('click', ()=>{ go('construccion'); });
-    const btnReset = el('button',{className:'btn secondary', textContent:'Reiniciar partida'}); btnReset.addEventListener('click', resetGame);
-    back.append(btnPlay, btnReset);
-    box.append(h,key,sum,back);
-    confettiBurst();
-    speak('¡Lo lograste! Llave de Oro de la Ciudad Inclusiva.');
-  } else {
-    const h = el('div', {innerHTML:`<h2>🤔 Falta un poco</h2><p>La Consejera señala áreas con íconos rojos. Mejora esos edificios.</p>`});
-    const sum = el('p',{innerHTML:`Felicidad actual: <b>${Math.round(estado.felicidad)}%</b> (objetivo ≥ 90). Edificios completos: <b>${estado.completados}</b>/<b>${estado.objetivoEdificios}</b>.`});
-    const back = el('div',{className:'row', style:'justify-content:center'});
-    const btnFix = el('button',{className:'btn', textContent:'Reintentar (mantener ciudad)'}); btnFix.addEventListener('click', ()=>{ go('construccion'); markIncomplete(); });
-    back.append(btnFix);
-    box.append(h,sum,back);
-    speak('Alguien quedó fuera. ¿Qué más falta?'); setCaption('¿Qué más falta?');
-  }
-}
-
-function markIncomplete(){
-  // Marcar con badge roja los edificios no completos
-  Object.entries(estado.placed).forEach(([key,info])=>{ if(!info.completo){ /* ya se marca en renderMap con badge */ } });
-  renderMap();
-}
-
-function resetGame(){
-  // Reinicia manteniendo preferencias de accesibilidad
-  estado.felicidad=50; estado.acceso=50; estado.satisfechos=0; estado.completados=0; estado.placed={}; estado.globalCovered=new Set();
-  go('construccion');
-}
-
-// ============================
-// TECLADO
-// ============================
-window.addEventListener('keydown', (e)=>{
-  if(!stateIs('construccion')) return;
-  if(e.key==='1'){ // seleccionar primer edificio disponible
-    const first = edificios.find(ed=> !Object.values(estado.placed).some(p=>p.id===ed.id) );
-    if(first) selectBuilding(first.id);
-  }
-  if(e.key==='ArrowRight'){ estado.cursor.c = Math.min(GRID_COLS-1, estado.cursor.c+1); renderMap(); }
-  if(e.key==='ArrowLeft'){ estado.cursor.c = Math.max(0, estado.cursor.c-1); renderMap(); }
-  if(e.key==='ArrowDown'){ estado.cursor.r = Math.min(GRID_ROWS-1, estado.cursor.r+1); renderMap(); }
-  if(e.key==='ArrowUp'){ estado.cursor.r = Math.max(0, estado.cursor.r-1); renderMap(); }
-  if(e.key==='Enter'){
-    const k = `${estado.cursor.r},${estado.cursor.c}`;
-    if(estado.placed[k]) openPuzzle(estado.placed[k].id, k); else if(selectedBuilding) placeBuilding(selectedBuilding, k);
-  }
-  if(e.key==='R' || e.key==='r'){ go('resultado'); showResult(false); }
-});
-
-// ============================
-// CONFETTI SENCILLO CANVAS
-// ============================
-function confettiBurst(){
-  const canvas = $('#confetti'); const ctx = canvas.getContext('2d');
-  const W = canvas.width = window.innerWidth; const H = canvas.height = window.innerHeight;
-  const pieces = Array.from({length: 120}, ()=>({ x:Math.random()*W, y:-20-Math.random()*H, s: 6+Math.random()*10, vy: 2+Math.random()*3, rot: Math.random()*Math.PI, vr:(Math.random()-.5)*.2 }));
-  let t=0; const colors=['#00a5ff','#ffb703','#7dd957','#fb7185','#c4b5fd'];
-  const id = setInterval(()=>{
-    ctx.clearRect(0,0,W,H); t+=1;
-    pieces.forEach(p=>{ p.y += p.vy; p.rot += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = colors[pieces.indexOf(p)%colors.length]; ctx.fillRect(-p.s/2, -p.s/2, p.s, p.s); ctx.restore(); });
-    if(t>240) clearInterval(id);
-  }, 16);
-}
-
-// ============================
-// INICIO INMEDIATO: hablar una línea de bienvenida si voz activa
-// ============================
-if(togles('voice')) setTimeout(()=> speak('Bienvenida y bienvenido a Ciudad Futura. ¡Construyamos con equidad!'), 500);
 </script>
 </body>
 </html>
